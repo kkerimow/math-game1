@@ -145,6 +145,9 @@ io.on('connection', (socket) => {
                 count: game.players.length,
                 players: game.players.map(p => ({ username: p.username }))
             });
+            if (game.currentQuestion) {
+                socket.emit('newQuestion', game.currentQuestion);
+            }
             return;
         }
 
@@ -169,15 +172,16 @@ io.on('connection', (socket) => {
             const question = generateQuestion(game.operation);
             game.currentQuestion = question;
             
-            console.log(`Starting game in room ${gameRoom}`);
+            console.log(`Starting game in room ${gameRoom} with question:`, question);
             // Send game start event with correct player order
             io.to(gameRoom).emit('gameStart', {
                 players: game.players.map(p => ({ username: p.username }))
             });
-            io.to(gameRoom).emit('newQuestion', { 
-                question: question.question,
-                answer: question.answer 
-            });
+
+            // Send initial question after a short delay
+            setTimeout(() => {
+                io.to(gameRoom).emit('newQuestion', question);
+            }, 1000);
         } else if (game.players.length === 1) {
             // Notify single player they're waiting
             socket.emit('waitingForPlayer', {
