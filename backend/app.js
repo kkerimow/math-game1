@@ -203,15 +203,26 @@ io.on('connection', (socket) => {
                 // Skor güncellemesini gönder
                 io.to(gameRoom).emit('updateScores', { 
                     scores: game.scores,
-                    correct: isCorrect,
+                    correct: true,
                     answeredBy: username
                 });
 
                 // Yeni soru gönder
                 const question = generateQuestion(game.operation);
                 game.currentQuestion = question;
-                console.log('Sending new question:', question);
-                io.to(gameRoom).emit('newQuestion', question);
+                
+                // Kısa bir gecikme ile yeni soruyu gönder
+                setTimeout(() => {
+                    console.log('Sending new question to room:', gameRoom, question);
+                    io.to(gameRoom).emit('newQuestion', question);
+                }, 1000);
+            } else {
+                // Yanlış cevap için sadece o kullanıcıya bildirim gönder
+                socket.emit('updateScores', {
+                    scores: game.scores,
+                    correct: false,
+                    answeredBy: username
+                });
             }
         }
     });
@@ -237,21 +248,30 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
         const gameRoom = socket.gameRoom;
         if (gameRoom) {
             const game = games.get(gameRoom);
             if (game) {
-                const remainingPlayer = game.players.find(p => p.id !== socket.id)?.username;
-                if (remainingPlayer) {
+                // Oyuncuyu oyundan çıkar
+                game.players = game.players.filter(p => p.id !== socket.id);
+                
+                if (game.players.length === 1) {
+                    // Kalan oyuncuya bildir
+                    const remainingPlayer = game.players[0].username;
                     io.to(gameRoom).emit('gameOver', {
                         winner: remainingPlayer,
-                        scores: game.scores
+                        scores: game.scores,
+                        reason: 'opponent_disconnected'
                     });
                 }
-                games.delete(gameRoom);
+                
+                // Oyun odasını temizle
+                if (game.players.length === 0) {
+                    games.delete(gameRoom);
+                }
             }
         }
-        console.log('User disconnected:', socket.id);
     });
 });
 
