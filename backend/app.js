@@ -112,6 +112,7 @@ io.on('connection', (socket) => {
     socket.on('joinGame', ({ username, operation }) => {
         console.log(`${username} trying to join game with operation: ${operation}`);
         let gameRoom = null;
+        let isNewGame = false;
 
         // Find an available game or create a new one
         for (const [room, game] of games.entries()) {
@@ -131,6 +132,7 @@ io.on('connection', (socket) => {
                 started: false
             });
             console.log(`Created new game room: ${gameRoom}`);
+            isNewGame = true;
         }
 
         const game = games.get(gameRoom);
@@ -138,6 +140,11 @@ io.on('connection', (socket) => {
         // Prevent same user from joining twice
         if (game.players.find(p => p.username === username)) {
             console.log(`${username} already in game`);
+            // Send current game state to reconnecting player
+            socket.emit('playerCount', {
+                count: game.players.length,
+                players: game.players.map(p => ({ username: p.username }))
+            });
             return;
         }
 
@@ -150,7 +157,7 @@ io.on('connection', (socket) => {
 
         console.log(`Players in room ${gameRoom}:`, game.players.length);
 
-        // Notify waiting room about player count
+        // Notify ALL players in the room about current players
         io.to(gameRoom).emit('playerCount', {
             count: game.players.length,
             players: game.players.map(p => ({ username: p.username }))
@@ -163,12 +170,18 @@ io.on('connection', (socket) => {
             game.currentQuestion = question;
             
             console.log(`Starting game in room ${gameRoom}`);
+            // Send game start event with correct player order
             io.to(gameRoom).emit('gameStart', {
                 players: game.players.map(p => ({ username: p.username }))
             });
             io.to(gameRoom).emit('newQuestion', { 
                 question: question.question,
                 answer: question.answer 
+            });
+        } else if (game.players.length === 1) {
+            // Notify single player they're waiting
+            socket.emit('waitingForPlayer', {
+                message: 'Waiting for another player to join...'
             });
         }
     });
