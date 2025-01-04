@@ -138,14 +138,23 @@ io.on('connection', (socket) => {
         const game = games.get(gameRoom);
 
         // Prevent same user from joining twice
-        if (game.players.find(p => p.username === username)) {
-            console.log(`${username} already in game`);
-            // Send current game state to reconnecting player
+        const existingPlayer = game.players.find(p => p.username === username);
+        if (existingPlayer) {
+            console.log(`${username} already in game, updating socket ID`);
+            existingPlayer.id = socket.id;
+            socket.join(gameRoom);
+            socket.gameRoom = gameRoom;
+
+            // Send current game state
             socket.emit('playerCount', {
                 count: game.players.length,
                 players: game.players.map(p => ({ username: p.username }))
             });
-            if (game.currentQuestion) {
+
+            if (game.started && game.currentQuestion) {
+                socket.emit('gameStart', {
+                    players: game.players.map(p => ({ username: p.username }))
+                });
                 socket.emit('newQuestion', game.currentQuestion);
             }
             return;
@@ -158,9 +167,9 @@ io.on('connection', (socket) => {
         socket.join(gameRoom);
         socket.gameRoom = gameRoom;
 
-        console.log(`Players in room ${gameRoom}:`, game.players.length);
+        console.log(`Players in room ${gameRoom}:`, game.players);
 
-        // Notify ALL players in the room about current players
+        // Notify ALL players about current state
         io.to(gameRoom).emit('playerCount', {
             count: game.players.length,
             players: game.players.map(p => ({ username: p.username }))
@@ -172,21 +181,18 @@ io.on('connection', (socket) => {
             const question = generateQuestion(game.operation);
             game.currentQuestion = question;
             
-            console.log(`Starting game in room ${gameRoom} with question:`, question);
-            // Send game start event with correct player order
+            console.log(`Starting game in room ${gameRoom}`);
+            
+            // Send game start event
             io.to(gameRoom).emit('gameStart', {
                 players: game.players.map(p => ({ username: p.username }))
             });
 
             // Send initial question after a short delay
             setTimeout(() => {
+                console.log('Sending initial question:', question);
                 io.to(gameRoom).emit('newQuestion', question);
             }, 1000);
-        } else if (game.players.length === 1) {
-            // Notify single player they're waiting
-            socket.emit('waitingForPlayer', {
-                message: 'Waiting for another player to join...'
-            });
         }
     });
 
