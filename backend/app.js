@@ -134,6 +134,14 @@ io.on('connection', (socket) => {
         }
 
         const game = games.get(gameRoom);
+
+        // Prevent same user from joining twice
+        if (game.players.find(p => p.username === username)) {
+            console.log(`${username} already in game`);
+            return;
+        }
+
+        // Add player to game
         game.players.push({ id: socket.id, username });
         game.scores[username] = 0;
         
@@ -142,8 +150,14 @@ io.on('connection', (socket) => {
 
         console.log(`Players in room ${gameRoom}:`, game.players.length);
 
+        // Notify waiting room about player count
+        io.to(gameRoom).emit('playerCount', {
+            count: game.players.length,
+            players: game.players.map(p => ({ username: p.username }))
+        });
+
         // Start game if we have 2 players
-        if (game.players.length === 2) {
+        if (game.players.length === 2 && !game.started) {
             game.started = true;
             const question = generateQuestion(game.operation);
             game.currentQuestion = question;
