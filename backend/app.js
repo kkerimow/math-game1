@@ -34,18 +34,21 @@ const io = new Server(server, {
         credentials: false
     },
     allowEIO3: true,
-    transports: ['polling'],
+    transports: ['polling', 'websocket'],
     path: '/socket.io/',
     connectTimeout: 45000,
     pingTimeout: 30000,
     pingInterval: 25000,
     upgradeTimeout: 30000,
     maxHttpBufferSize: 1e8,
-    allowUpgrades: false,
+    allowUpgrades: true,
     cookie: false,
     perMessageDeflate: false,
     httpCompression: false
 });
+
+// Add OPTIONS handler for preflight requests
+app.options('*', cors());
 
 // Enable detailed logging
 io.engine.on("connection_error", (err) => {
