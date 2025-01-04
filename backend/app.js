@@ -210,10 +210,8 @@ io.on('connection', (socket) => {
                 // Yeni soru gönder
                 const question = generateQuestion(game.operation);
                 game.currentQuestion = question;
-                io.to(gameRoom).emit('newQuestion', { 
-                    question: question.question,
-                    answer: question.answer 
-                });
+                console.log('Sending new question:', question);
+                io.to(gameRoom).emit('newQuestion', question);
             }
         }
     });
@@ -236,9 +234,9 @@ io.on('connection', (socket) => {
             io.to(gameRoom).emit('gameOver', { winner, scores });
             games.delete(gameRoom);
         }
-  });
+    });
 
-  socket.on('disconnect', () => {
+    socket.on('disconnect', () => {
         const gameRoom = socket.gameRoom;
         if (gameRoom) {
             const game = games.get(gameRoom);
@@ -254,7 +252,7 @@ io.on('connection', (socket) => {
             }
         }
         console.log('User disconnected:', socket.id);
-  });
+    });
 });
 
 // Error handling middleware
