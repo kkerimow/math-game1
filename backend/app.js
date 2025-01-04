@@ -136,19 +136,23 @@ io.on('connection', (socket) => {
         const game = games.get(gameRoom);
 
         // Prevent same user from joining twice
-        if (game.players.find(p => p.username === username)) {
-            console.log(`${username} already in game`);
+        const existingPlayer = game.players.find(p => p.username === username);
+        if (existingPlayer) {
+            console.log(`${username} already in game, reconnecting`);
+            existingPlayer.id = socket.id;
             socket.join(gameRoom);
             socket.gameRoom = gameRoom;
             
-            // Send current game state
-            io.to(gameRoom).emit('playerCount', {
+            // Send current game state to reconnecting player
+            socket.emit('playerCount', {
                 count: game.players.length,
-                players: game.players
+                players: game.players.map(p => ({ username: p.username }))
             });
 
             if (game.started && game.currentQuestion) {
-                socket.emit('gameStart', { players: game.players });
+                socket.emit('gameStart', { 
+                    players: game.players.map(p => ({ username: p.username }))
+                });
                 socket.emit('newQuestion', game.currentQuestion);
             }
             return;
@@ -166,11 +170,11 @@ io.on('connection', (socket) => {
         // Notify ALL players about current state
         io.to(gameRoom).emit('playerCount', {
             count: game.players.length,
-            players: game.players
+            players: game.players.map(p => ({ username: p.username }))
         });
 
         // Start game if we have 2 players
-        if (game.players.length === 2) {
+        if (game.players.length === 2 && !game.started) {
             game.started = true;
             const question = generateQuestion(game.operation);
             game.currentQuestion = question;
@@ -178,7 +182,9 @@ io.on('connection', (socket) => {
             console.log(`Starting game in room ${gameRoom} with players:`, game.players);
             
             // Send game start event to all players
-            io.to(gameRoom).emit('gameStart', { players: game.players });
+            io.to(gameRoom).emit('gameStart', { 
+                players: game.players.map(p => ({ username: p.username }))
+            });
 
             // Send initial question to all players
             setTimeout(() => {
@@ -209,10 +215,8 @@ io.on('connection', (socket) => {
                 const question = generateQuestion(game.operation);
                 game.currentQuestion = question;
                 
-                setTimeout(() => {
-                    console.log('Sending new question to all players:', question);
-                    io.to(gameRoom).emit('newQuestion', question);
-                }, 1000);
+                // Send new question to all players immediately
+                io.to(gameRoom).emit('newQuestion', question);
             } else {
                 // Send wrong answer feedback only to the player who answered
                 socket.emit('updateScores', {
