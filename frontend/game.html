@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game Challenge</title>
+    <link rel="stylesheet" href="./assets/css/game.css">
+</head>
+
+<body>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <div class="scoreboard">
+                <div class="score">Player1<br><span id="player1-score">0</span></div>
+            </div>
+            <div class="timer" id="timer">02:00</div>
+            <div class="question" id="question"></div>
+            <input class="answer" id="answer" type="text" autofocus>
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    
+    <script>
+        function getUsernameFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('username') || 'Player1'; // Varsayılan olarak Player1
+        }
+
+        function getUsernameFromLocalStorage() {
+            return localStorage.getItem('username') || 'Player1'; // Varsayılan olarak Player1
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Kullanıcı adını URL'den veya localStorage'dan alın
+            const username = getUsernameFromLocalStorage(); // LocalStorage'dan al
+
+            // Player1 alanını seç ve kullanıcı adını yazdır
+            const player1Element = document.querySelector('.score');
+            if (player1Element) {
+                player1Element.innerHTML = `${username}<br><span id="player1-score">0</span>`;
+            } else {
+                console.warn('Player1 element not found!');
+            }
+        });
+    </script>
+    <script src="./assets/js/choseOperation.js"></script>
+</body>
+
+</html>

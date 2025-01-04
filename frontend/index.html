@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game Challenge</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+    <script>
+        window.BACKEND_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000'
+            : 'https://math-game-backend.onrender.com';
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Math Madness</div>
+        <div class="auth-buttons">
+            <a onclick="openModal(false)">Sign Up</a>
+            <a onclick="openModal(true)">Login</a>
+        </div>
+    </div>
+    <div class="container">
+        <h2>Game On!</h2>
+        <h1>Math Madness</h1>
+        <h2>Challenge your brain, win big!</h2>
+        <p>Dive into the wild world of Mathletics! Compete with friends and foes in a race against time.</p>
+        <a onclick="openModal(false)" class="button">Start Playing</a>
+    </div>
+
+    <!-- Modal Structure -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal" id="modal">
+        <h2 id="modal-title">Sign Up</h2>
+        <div id="modal-content">
+            <!-- Content changes dynamically -->
+        </div>
+    </div>
+
+    <script src="./assets/js/auth.js"></script>
+    <script src="./assets/js/sendToDb.js"></script>
+</body>
+</html>

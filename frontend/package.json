@@ -1,0 +1,9 @@
+{
+    "name": "math-game-frontend-app",
+    "version": "1.0.0",
+    "description": "Math Game Frontend",
+    "scripts": {
+        "build": "echo 'No build step needed - static files'",
+        "vercel-build": "echo 'Static deployment - no build needed'"
+    }
+} 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Challenge</title>
+    <link rel="stylesheet" href="./assets/css/styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="operations">
+            <h1>Choose Your Challenge</h1>
+            <p class="tagline">Dive into the world of math madness and conquer the numbers!</p>
+            <div class="buttons-container">
+                <button id="add" onclick="selectOperation('+')">+</button>
+                <button id="subtract" onclick="selectOperation('-')">-</button>
+                <button id="divide" onclick="selectOperation('/')">&divide;</button>
+                <button id="multiply" onclick="selectOperation('*')">&times;</button>
+            </div>
+            <div class="play-buttons">
+                <button onclick="playSingleplayer()">Singleplayer</button>
+                <button onclick="playMultiplayer()">Multiplayer</button>
+            </div>
+            <div class="countdown" id="countdown"></div> <!-- Geri sayım göstergesi -->
+        </div>
+    </div>
+    <script src="./assets/js/challenge.js"></script>
+</body>
+
+</html>
