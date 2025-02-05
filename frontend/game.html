@@ -4,24 +4,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Game Challenge</title>
+    <title>Math Game - Single Player</title>
     <link rel="stylesheet" href="./assets/css/game.css">
+    <style>
+        #game-over {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #game-over h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        #final-score {
+            font-size: 2rem;
+            color: #4CAF50;
+            margin: 1rem 0;
+        }
+
+        #play-again-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s;
+        }
+
+        #play-again-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="game-wrapper">
-        <div class="game-container">
-            <div class="scoreboard">
-                <div class="score">Player1<br><span id="player1-score">0</span></div>
-            </div>
-            <div class="timer" id="timer">02:00</div>
-            <div class="question" id="question"></div>
-            <input class="answer" id="answer" type="text" autofocus>
-            <div class="result" id="result"></div>
+    <div class="game-container">
+        <div class="timer" id="timer">02:00</div>
+        <div class="score-container">
+            Score: <span id="score">0</span>
         </div>
+        <div class="question" id="question"></div>
+        <input type="number" id="answer" placeholder="Your answer" step="any">
+        <div id="result"></div>
     </div>
 
-    
+    <div id="game-over">
+        <h1>Game Over!</h1>
+        <p>Your final score:</p>
+        <div id="final-score">0</div>
+        <button id="play-again-btn" onclick="window.location.href='index2.html'">Play Again</button>
+    </div>
+
     <script>
         function getUsernameFromURL() {
             const params = new URLSearchParams(window.location.search);
@@ -46,6 +91,7 @@
         });
     </script>
     <script src="./assets/js/choseOperation.js"></script>
+    <script src="./assets/js/game.js"></script>
 </body>
 
 </html>

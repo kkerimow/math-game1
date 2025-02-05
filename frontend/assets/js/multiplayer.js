@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Socket.IO bağlantısı
     const socket = io(window.BACKEND_URL, {
-        transports: ['polling'],
+        transports: ['polling', 'websocket'],
         path: '/socket.io/',
         reconnection: true,
         reconnectionDelay: 1000,
@@ -12,14 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
         timeout: 20000,
         autoConnect: true,
         forceNew: true,
-        upgrade: false,
-        rememberUpgrade: false,
+        upgrade: true,
+        rememberUpgrade: true,
         secure: true,
-        rejectUnauthorized: false,
-        query: {
-            "transport": "polling",
-            "b64": "1"
-        }
+        rejectUnauthorized: false
     });
 
     // Debug için bağlantı durumunu izle
@@ -57,6 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Get DOM elements
     const waitingRoom = document.getElementById('waiting-room');
+    const waitingMessage = document.querySelector('#waiting-room h1');
     const gameContainer = document.getElementById('game-container');
     const gameOver = document.getElementById('game-over');
     const player1Name = document.getElementById('player1-name');
@@ -73,12 +70,41 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const username = localStorage.getItem('username');
-    const operation = new URLSearchParams(window.location.search).get('operation');
+    // Game state variables
     let gameStarted = false;
     let timeLeft = 120; // 2 minutes
-    let timerInterval;
+    let timerInterval = null;
     let currentAnswer = null;
+    let currentUsername = localStorage.getItem('username');
+    let players = []; // Oyuncu listesini sakla
+    const operation = new URLSearchParams(window.location.search).get('operation');
+
+    function startTimer() {
+        // Clear existing timer if any
+        if (timerInterval) {
+            clearInterval(timerInterval);
+        }
+        
+        timeLeft = 120; // Reset timer
+        updateTimerDisplay();
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+
+            if (timeLeft <= 0) {
+                console.log('Time up!');
+                clearInterval(timerInterval);
+                socket.emit('timeUp');
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
 
     // Otomatik focus fonksiyonu
     function focusInput() {
@@ -102,15 +128,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    console.log('Connecting with username:', username, 'operation:', operation);
+    console.log('Connecting with username:', currentUsername);
 
     // Socket event listeners
     socket.on('connect', () => {
         console.log('Connected to server');
         
-        if (username && operation) {
-            socket.emit('joinGame', { username, operation });
-            console.log('Emitted joinGame event');
+        if (currentUsername && operation) {
+            console.log('Joining game with:', { username: currentUsername, operation });
+            socket.emit('joinGame', { username: currentUsername, operation });
         } else {
             console.error('Missing username or operation');
             alert('Please start from the main page and make sure you are logged in.');
@@ -125,39 +151,63 @@ document.addEventListener('DOMContentLoaded', () => {
     // Listen for game start
     socket.on('gameStart', ({ players }) => {
         console.log('Game starting with players:', players);
+        if (!players || players.length !== 2) {
+            console.error('Invalid players data:', players);
+            return;
+        }
+
         gameStarted = true;
         waitingRoom.style.display = 'none';
         gameContainer.style.display = 'block';
-        
+
+        // Update player names
         player1Name.textContent = players[0].username;
         player2Name.textContent = players[1].username;
-        
+
         startTimer();
-        focusInput(); // Oyun başladığında input'a focus
+        focusInput();
     });
 
     // Listen for new questions
-    socket.on('newQuestion', ({ question, answer }) => {
-        console.log('New question received:', question);
-        questionElement.textContent = question;
-        currentAnswer = answer;
+    socket.on('newQuestion', (questionData) => {
+        console.log('New question received:', questionData);
+        if (!questionData || !questionData.question) {
+            console.error('Invalid question data:', questionData);
+            return;
+        }
+
+        // Update question and answer
+        questionElement.textContent = questionData.question;
+        currentAnswer = questionData.answer;
+        
+        // Reset input and styles
         answerInput.value = '';
         answerInput.classList.remove('correct', 'wrong');
-        focusInput(); // Yeni soru geldiğinde input'a focus
+        resultElement.textContent = '';
+        
+        // Focus on input
+        focusInput();
     });
 
     // Listen for score updates
     socket.on('updateScores', ({ scores, correct, answeredBy }) => {
-        console.log('Score update:', scores);
-        Object.entries(scores).forEach(([player, score], index) => {
-            const scoreElement = document.getElementById(`player${index + 1}-score`);
-            if (scoreElement) {
-                scoreElement.textContent = score;
-            }
-        });
+        console.log('Score update:', { scores, correct, answeredBy });
+        
+        // Get current player names from the display
+        const player1 = player1Name.textContent;
+        const player2 = player2Name.textContent;
+        
+        // Update scores
+        document.getElementById('player1-score').textContent = scores[player1] || '0';
+        document.getElementById('player2-score').textContent = scores[player2] || '0';
 
-        if (answeredBy === username) {
-            updateInputStyle(correct);
+        // Show result message
+        if (correct) {
+            resultElement.textContent = `${answeredBy} answered correctly!`;
+            if (answeredBy !== currentUsername) {
+                answerInput.value = '';
+                answerInput.classList.remove('correct', 'wrong');
+            }
         }
     });
 
@@ -168,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateInputStyle(isCorrect);
 
             if (isCorrect) {
-                socket.emit('submitAnswer', { answer: parseFloat(e.target.value), username });
+                socket.emit('submitAnswer', { answer: parseFloat(e.target.value), username: currentUsername });
             }
         }
     });
@@ -190,18 +240,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function startTimer() {
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            timerElement.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    // Socket event listeners
+    socket.on('playerCount', ({ count, players }) => {
+        console.log('Player count update:', count, players);
+        
+        if (!players || !Array.isArray(players)) {
+            console.error('Invalid players data:', players);
+            return;
+        }
 
-            if (timeLeft <= 0) {
-                console.log('Time up!');
-                socket.emit('timeUp');
-                clearInterval(timerInterval);
-            }
-        }, 1000);
-    }
+        if (count === 1) {
+            waitingMessage.textContent = 'Waiting for another player...';
+            player1Name.textContent = players[0].username;
+            player2Name.textContent = 'Waiting...';
+        } else if (count === 2) {
+            waitingMessage.textContent = 'Game starting...';
+            player1Name.textContent = players[0].username;
+            player2Name.textContent = players[1].username;
+        }
+    });
+
+    socket.on('waitingForPlayer', ({ message }) => {
+        console.log('Waiting message:', message);
+        waitingMessage.textContent = message;
+        player2Name.textContent = 'Waiting...';
+    });
 });
